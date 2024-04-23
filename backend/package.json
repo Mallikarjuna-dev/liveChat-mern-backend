@@ -6,7 +6,7 @@
   "scripts": {
     "server": "node backend/server.js",
     "start": "nodemon backend/server.js",
-    "build": "npm install --legacy-peer-deps"
+    "build": "npm install"
   },
   "repository": {
     "type": "git",

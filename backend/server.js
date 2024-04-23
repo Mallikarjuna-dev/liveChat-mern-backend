@@ -8,17 +8,17 @@ const port = process.env.PORT || 5000;
 
 const path = require("path");
 
-connectDB(); //connection to the mongo
-
 const app = express();
+
+// connectDB(); //connection to the mongo
 
 app.use(cors());
 
 app.use(express.json()); // to eccept json data
 
-// app.get("/", (req, res) => {
-//   res.send("API running successfully");
-// });
+app.get("/", (req, res) => {
+  res.send("API running successfully");
+});
 
 app.use("/api/user", require("./routes/userRoutes"));
 app.use("/api/chat", require("./routes/chatRoutes"));
@@ -45,10 +45,19 @@ app.use("/api/message", require("./routes/messageRoutes"));
 app.use(notFound);
 app.use(errorHandler);
 
-const server = app.listen(
-  port,
-  console.log(`server listening on port: ${port}`.yellow.bold)
-);
+const server = app.listen(port, async (req, res) => {
+  try {
+    connectDB();
+    console.log(`server listening on port: ${port}.`.yellow.bold);
+  } catch (err) {
+    console.log(`Error: ${err.message}`.red.bold);
+  }
+});
+
+// const server = app.listen(
+//   port,
+//   console.log(`server listening on port: ${port}`.yellow.bold)
+// );
 
 const io = require("socket.io")(server, {
   pingTimeout: 2000,
@@ -74,19 +83,20 @@ io.on("connection", (socket) => {
   socket.on("stop typing", (room) => socket.in(room).emit("stop typing"));
 
   socket.on("new message", (newMessageRecieved) => {
-    try {
-      var chat = newMessageRecieved.chat;
+    // try {
+    var chat = newMessageRecieved.chat;
+    if (!chat.users) return console.log("chat.users not defined");
 
-      if (!chat.users) return console.log("chat.users not defined");
-
-      chat.users.forEach((user) => {
-        if (user._id == newMessageRecieved.sender._id) return;
-
+    chat.users.forEach((user) => {
+      if (user._id == newMessageRecieved.sender._id) {
+        return;
+      } else {
         socket.in(user._id).emit("message recieved", newMessageRecieved);
-      });
-    } catch (error) {
-      console.error("Error handling new message:", error);
-    }
+      }
+    });
+    // } catch (error) {
+    //   console.error("Error handling new message:", error);
+    // }
   });
 
   // socket.off("setup", () => {
